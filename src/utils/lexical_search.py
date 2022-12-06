@@ -2,6 +2,7 @@ from haystack.nodes import TfidfRetriever
 from haystack.document_stores import InMemoryDocumentStore
 import spacy
 import re
+import pandas as pd
 from spacy.matcher import Matcher
 from markdown import markdown
 try:
@@ -209,7 +210,8 @@ def spacyAnnotator(matches: List[List[int]], document:spacy.tokens.doc.Doc):
     else:
         print(annotated_text)
 
-def lexical_search(query:Text, documents:List[Document],top_k:int):
+def lexical_search(query:Text, documents:List[Document],top_k:int, 
+                    return_results:bool = False):
     """
     Performs the Lexical search on the List of haystack documents which is 
     returned by preprocessing Pipeline.
@@ -219,6 +221,7 @@ def lexical_search(query:Text, documents:List[Document],top_k:int):
     query: Keywords that need to be searche in documents.
     documents: List of Haystack documents returned by preprocessing pipeline.
     top_k: Number of Top results to be fetched.
+    return_results: Whether to return raw results (True) or to print/write (False) 
     
     """
 
@@ -229,26 +232,35 @@ def lexical_search(query:Text, documents:List[Document],top_k:int):
     retriever = TfidfRetriever(document_store)
     results = retriever.retrieve(query=query, top_k = top_k)          
     query_tokens = tokenize_lexical_query(query)
+    results_df = pd.DataFrame(columns=['query','text','spacy','matches'])
     flag = True
     for count, result in enumerate(results):
         matches, doc = runSpacyMatcher(query_tokens,result.content)
-
-        if len(matches) != 0:
-            if flag:
-                flag = False
+        results_df.iloc[len(results_df)] = [query,doc.text,doc,matches]
+    
+    if return_results:
+        return results_df
+    else:
+        for i in range(len(results_df)):
+            matches = results_df.iloc[i]['matches']
+            doc = results_df.iloc[i]['spacy']
+            if len(matches) != 0:
+                if flag:
+                    flag = False
+                    if check_streamlit():
+                        st.markdown("##### Top few lexical search (TFIDF) hits #####")
+                    else:
+                        print("Top few lexical search (TFIDF) hits")
+                
                 if check_streamlit():
-                    st.markdown("##### Top few lexical search (TFIDF) hits #####")
+                    st.write("Result {}".format(count+1))
                 else:
-                    print("Top few lexical search (TFIDF) hits")
-            
-            if check_streamlit():
-                st.write("Result {}".format(count+1))
-            else:
-                print("Results {}".format(count +1))
-            spacyAnnotator(matches, doc)
+                    print("Results {}".format(count +1))
+                spacyAnnotator(matches, doc)
 
-    if flag:
-        if check_streamlit():
-            st.info("🤔 No relevant result found. Please try another keyword.")
-        else:
-            print("No relevant result found. Please try another keyword.")   
+        if flag:
+            if check_streamlit():
+                st.info("🤔 No relevant result found. Please try another keyword.")
+            else:
+                print("No relevant result found. Please try another keyword.") 
+      
