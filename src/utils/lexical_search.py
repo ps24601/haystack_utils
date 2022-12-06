@@ -232,17 +232,11 @@ def lexical_search(query:Text, documents:List[Document],top_k:int,
     retriever = TfidfRetriever(document_store)
     results = retriever.retrieve(query=query, top_k = top_k)          
     query_tokens = tokenize_lexical_query(query)
-    results_df = pd.DataFrame(columns=['query','text','spacy_doc','matches'])
+    results_df = pd.DataFrame(columns=['query','text','spacy','matches'])
     flag = True
     for count, result in enumerate(results):
         matches, doc = runSpacyMatcher(query_tokens,result.content)
-        row_list ={}
-        row_list['query'] = query
-        row_list['text'] = doc.text
-        row_list['spacy_doc'] = doc
-        row_list['matches'] = matches
-        df = pd.DataFrame([row_list])
-        results_df = pd.concat([results_df, df], ignore_index=True)
+        results_df.loc[len(results_df)] = [query,doc.text,doc,matches]
     
     if return_results:
         return results_df
