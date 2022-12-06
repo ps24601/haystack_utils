@@ -236,7 +236,7 @@ def lexical_search(query:Text, documents:List[Document],top_k:int,
     flag = True
     for count, result in enumerate(results):
         matches, doc = runSpacyMatcher(query_tokens,result.content)
-        results_df.iloc[len(results_df)] = [query,doc.text,doc,matches]
+        results_df.loc[len(results_df)] = [query,doc.text,doc,matches]
     
     if return_results:
         return results_df
